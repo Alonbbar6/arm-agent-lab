@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Arm Agent Lab"
+description = "A working robot arm agent laboratory with deterministic TypeScript simulation, safety checked tools, live SSE traces, mock and Claude planners, and repeatable evaluations."
+version = "1.0.0"
+id = "artifacts/arm-agent-lab"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22889
+
+[services.development]
+run = "pnpm --filter @workspace/arm-agent-lab run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/arm-agent-lab", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/arm-agent-lab/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22889"
+BASE_PATH = "/"

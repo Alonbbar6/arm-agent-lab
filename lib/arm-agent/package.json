@@ -1,0 +1,10 @@
+{
+  "name": "@workspace/arm-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {".": {"types": "./dist/index.d.ts", "default": "./src/index.ts"}, "./eval": {"types": "./dist/eval.d.ts", "default": "./src/eval.ts"}},
+  "scripts": {"eval": "tsx src/cli.ts"},
+  "dependencies": {"@workspace/arm-sim": "workspace:*", "@anthropic-ai/sdk": "^1.14.0"},
+  "devDependencies": {"tsx": "catalog:", "@types/node": "catalog:"}
+}

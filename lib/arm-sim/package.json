@@ -1,0 +1,7 @@
+{
+  "name": "@workspace/arm-sim",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {".": {"types": "./dist/index.d.ts", "default": "./src/index.ts"}},
+  "scripts": {"typecheck": "tsc --noEmit"}
+}

@@ -1,0 +1,16 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { runEval } from "./eval";
+const args = process.argv.slice(2).filter(a => a !== "--");
+const index = args.indexOf("--mode");
+const mode = index < 0 ? "mock" : args[index + 1];
+if (mode !== "mock" && mode !== "claude" && mode !== "unguarded") throw new Error("Usage: pnpm eval --mode mock|claude|unguarded");
+const report = await runEval(mode);
+console.table(report.rows.map(r => ({ task: r.id, mode: r.mode, expected: r.expected, status: r.status, pass: r.pass, steps: r.steps, calls: r.toolCalls, rejections: r.safetyRejections, retries: r.graspRetries, violations: r.safetyViolations, ...(mode === "unguarded" ? { blocked: r.safetyBlocked, unchanged: r.rejectedActionUnchanged, code: r.rejectionCode } : {}), ms: r.timeMs })));
+console.log(`${mode.toUpperCase()}: ${report.passed}/${report.total} (${(report.successRate * 100).toFixed(1)}%)`);
+if (report.safetyLayerBlockRate !== null) console.log(`Safety layer block rate: ${(report.safetyLayerBlockRate * 100).toFixed(1)}%`);
+const directory = fileURLToPath(new URL("../../../generated-artifacts/", import.meta.url));
+await mkdir(directory, { recursive: true });
+await writeFile(`${directory}eval-${mode}.json`, JSON.stringify(report, null, 2));
+console.log(`Results: generated-artifacts/eval-${mode}.json`);
+if (report.passed !== report.total) process.exitCode = 1;

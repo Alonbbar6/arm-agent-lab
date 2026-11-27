@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /lab/config:
+    get:
+      operationId: getLabConfig
+      responses:
+        "200":
+          description: Runtime capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LabConfig"
+  /lab/scene:
+    post:
+      operationId: createLabScene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SceneInput"
+      responses:
+        "200":
+          description: Initial scene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SceneSnapshot"
+  /lab/runs:
+    post:
+      operationId: createLabRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunInput"
+      responses:
+        "200":
+          description: Run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunHandle"
+  /lab/runs/{id}/events:
+    get:
+      operationId: streamLabRun
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: SSE data objects of type LabEvent; replay using Last-Event-ID
+          content:
+            text/event-stream:
+              schema: {type: string}
+  /lab/runs/{id}/stop:
+    post:
+      operationId: stopLabRun
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: Stop requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Acknowledgement"
+  /lab/eval:
+    post:
+      operationId: runLabEval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvalInput"
+      responses:
+        "200":
+          description: Real evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalReport"
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+components:
+  schemas:
+    LabConfig:
+      type: object
+      required: [claudeAvailable, model, scenarios]
+      properties:
+        claudeAvailable: {type: boolean}
+        model: {type: string}
+        scenarios: {type: array, items: {type: string}}
+    SceneInput:
+      type: object
+      required: [scenario, seed]
+      properties:
+        scenario: {type: string, enum: [default, scattered, keep-out, grasp-fault, stacked]}
+        seed: {type: integer, minimum: 0}
+    RunInput:
+      type: object
+      required: [instruction, mode, scene]
+      properties:
+        instruction: {type: string, minLength: 1, maxLength: 1000}
+        mode: {type: string, enum: [mock, claude]}
+        scene: {$ref: "#/components/schemas/SceneSnapshot"}
+    SceneSnapshot:
+      type: object
+      additionalProperties: true
+      description: Shared Scene type exported by @workspace/arm-sim; runtime validated on server
+    RunHandle:
+      type: object
+      required: [id, mode]
+      properties:
+        id: {type: string}
+        mode: {type: string, enum: [mock, claude]}
+    Acknowledgement:
+      type: object
+      required: [ok]
+      properties:
+        ok: {type: boolean}
+    EvalInput:
+      type: object
+      required: [mode]
+      properties:
+        mode: {type: string, enum: [mock, claude, unguarded]}
+    EvalRow:
+      type: object
+      required: [id, instruction, scenario, mode, expected, status, pass, goalPassed, steps, toolCalls, safetyRejections, safetyViolations, graspRetries, timeMs, summary]
+      properties:
+        id: {type: string}
+        instruction: {type: string}
+        scenario: {type: string}
+        mode: {type: string}
+        expected: {type: string}
+        status: {type: string}
+        pass: {type: boolean}
+        goalPassed: {type: boolean}
+        steps: {type: integer}
+        toolCalls: {type: integer}
+        safetyRejections: {type: integer}
+        safetyViolations: {type: integer}
+        graspRetries: {type: integer}
+        timeMs: {type: number}
+        summary: {type: string}
+        safetyBlocked: {type: boolean}
+        rejectedActionUnchanged: {type: boolean}
+        rejectionCode: {type: string}
+    EvalReport:
+      type: object
+      required: [mode, rows, passed, total, successRate, generatedAt]
+      properties:
+        mode: {type: string}
+        rows: {type: array, items: {$ref: "#/components/schemas/EvalRow"}}
+        passed: {type: integer}
+        total: {type: integer}
+        successRate: {type: number}
+        generatedAt: {type: string}
+        safetyLayerBlockRate: {type: [number, "null"]}
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
